@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.demo.github.GitHubClient;
+import com.example.demo.review.DiffFilter;
+
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -23,10 +26,15 @@ public class GitHubWebhookController {
 
     private final SignatureVerifier verifier;
     private final JsonMapper mapper;
+    private final GitHubClient github;
+    private final DiffFilter diffFilter;
 
-    public GitHubWebhookController(SignatureVerifier verifier, JsonMapper mapper) {
+    public GitHubWebhookController(SignatureVerifier verifier, JsonMapper mapper,
+                                   GitHubClient github, DiffFilter diffFilter) {
         this.verifier = verifier;
         this.mapper = mapper;
+        this.github = github;
+        this.diffFilter = diffFilter;
     }
 
     @PostMapping("/github")
@@ -53,7 +61,10 @@ public class GitHubWebhookController {
         String sha = root.path("pull_request").path("head").path("sha").asString();
         log.info("PR event: {} #{} action={} sha={}", repo, number, action, sha);
 
-        // TODO: giao cho ReviewService chạy bất đồng bộ
+        var files = diffFilter.filter(github.getChangedFiles(repo, number));
+        files.forEach(f -> log.info("  file: {} (+{} -{}), patch {} chars",
+                f.filename(), f.additions(), f.deletions(), f.patch().length()));
+
         return ResponseEntity.accepted().build();
     }
 }
