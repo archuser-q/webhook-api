@@ -24,8 +24,10 @@ public class GitHubClient {
     }
 
     public List<ChangedFile> getChangedFiles(String repo, int prNumber) {
+        String[] parts = repo.split("/", 2);
         return client.get()
-                .uri("/repos/{repo}/pulls/{n}/files?per_page=100", repo, prNumber)
+                .uri("/repos/{owner}/{name}/pulls/{n}/files?per_page=100",
+                        parts[0], parts[1], prNumber)
                 .retrieve()
                 .body(new ParameterizedTypeReference<List<ChangedFile>>() {});
     }
